@@ -1,0 +1,38 @@
+name: Subdomain Enumeration
+
+on: [push]
+
+jobs:
+  subdomain-enumeration:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Run Amass and save output to urls.txt
+      run: |
+        amass enum -d example.com -o urls.txt
+        
+    - name: Run Subfinder and save output to urls.txt
+      run: |
+        subfinder -dL urls.txt -o urls.txt
+        
+    - name: Run Subjack and save output to subdomainstakeovers.txt
+      run: |
+        subjack -w urls.txt -t 100 -a -ssl -c /path/to/fingerprints.json -v 3 >> subdomainstakeovers.txt
+        
+    - name: Run HTTPX and save output to httpxout.txt
+      run: |
+        cat urls.txt | httpx -silent >> httpxout.txt
+        
+    - name: Run Nuclei and save output to bugs.txt
+      run: |
+        cat httpxout.txt | nuclei -t /path/to/templates -o bugs.txt
+        
+    - name: Commit changes
+      run: |
+        git config --global jareddarkweb "GitHub Actions"
+        git config --global jareddarkweb@gmail.com "actions@users.noreply.github.com"
+        git add -A
+        git commit -m "Update subdomains and bugs"
+        git push
